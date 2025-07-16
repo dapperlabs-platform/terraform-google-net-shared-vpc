@@ -14,7 +14,7 @@ locals {
   # Flatten IAM members for subnets with project_ids
   subnet_iam_members = flatten([
     for subnet_key, subnet in var.subnets : [
-      for service_account in var.project_service_accounts[subnet.project_id] : {
+      for service_account in try(var.project_service_accounts[subnet.project_id], []) : {
         subnet_key      = subnet_key
         project_id      = subnet.project_id
         subnet_name     = subnet.name
