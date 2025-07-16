@@ -69,30 +69,30 @@ output "subnet_secondary_ip_ranges" {
   value       = { for k, v in google_compute_subnetwork.network-with-private-secondary-ip-ranges : k => v.secondary_ip_range }
 }
 
-output "router_ids" {
-  description = "Map of router IDs by region"
-  value       = { for k, v in google_compute_router.nat : k => v.id }
-}
-
-output "router_names" {
-  description = "Map of router names by region"
-  value       = { for k, v in google_compute_router.nat : k => v.name }
-}
-
-output "router_self_links" {
-  description = "Map of router self-links by region"
-  value       = { for k, v in google_compute_router.nat : k => v.self_link }
-}
-
-output "nat_ids" {
-  description = "Map of NAT gateway IDs by region"
-  value       = { for k, v in google_compute_router_nat.nat : k => v.id }
-}
-
-output "nat_names" {
-  description = "Map of NAT gateway names by region"
-  value       = { for k, v in google_compute_router_nat.nat : k => v.name }
-}
+#output "router_ids" {
+#  description = "Map of router IDs by region"
+#  value       = { for k, v in google_compute_router.nat : k => v.id }
+#}
+#
+#output "router_names" {
+#  description = "Map of router names by region"
+#  value       = { for k, v in google_compute_router.nat : k => v.name }
+#}
+#
+#output "router_self_links" {
+#  description = "Map of router self-links by region"
+#  value       = { for k, v in google_compute_router.nat : k => v.self_link }
+#}
+#
+#output "nat_ids" {
+#  description = "Map of NAT gateway IDs by region"
+#  value       = { for k, v in google_compute_router_nat.nat : k => v.id }
+#}
+#
+#output "nat_names" {
+#  description = "Map of NAT gateway names by region"
+#  value       = { for k, v in google_compute_router_nat.nat : k => v.name }
+#}
 
 output "subnet_iam_members" {
   description = "Map of subnet IAM members by subnet key and service account"
@@ -117,13 +117,13 @@ output "all_subnets" {
 output "network_summary" {
   description = "Summary of the shared VPC network configuration"
   value = {
-    network_id        = google_compute_network.shared_vpc_network.id
-    network_name      = google_compute_network.shared_vpc_network.name
-    host_project      = google_compute_shared_vpc_host_project.host.project
-    service_projects  = [for project in google_compute_shared_vpc_service_project.service_project : project.service_project]
-    subnet_count      = length(google_compute_subnetwork.network-with-private-secondary-ip-ranges)
-    router_count      = length(google_compute_router.nat)
-    nat_count         = length(google_compute_router_nat.nat)
+    network_id       = google_compute_network.shared_vpc_network.id
+    network_name     = google_compute_network.shared_vpc_network.name
+    host_project     = google_compute_shared_vpc_host_project.host.project
+    service_projects = [for project in google_compute_shared_vpc_service_project.service_project : project.service_project]
+    subnet_count     = length(google_compute_subnetwork.network-with-private-secondary-ip-ranges)
+    #router_count      = length(google_compute_router.nat)
+    #nat_count         = length(google_compute_router_nat.nat)
     iam_binding_count = length(google_compute_subnetwork_iam_member.subnet_iam)
   }
 }
