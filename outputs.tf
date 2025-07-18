@@ -103,7 +103,6 @@ output "subnet_iam_debug" {
   description = "Debug information about subnet IAM configuration"
   value = {
     project_service_accounts = var.project_service_accounts
-    debug_service_accounts   = local.debug_service_accounts
     subnet_iam_members_local = local.subnet_iam_members
     subnet_iam_resources = {
       for k, v in google_compute_subnetwork_iam_member.subnet_iam : k => {
