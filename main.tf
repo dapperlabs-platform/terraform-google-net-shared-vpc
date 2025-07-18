@@ -83,7 +83,7 @@ resource "google_compute_subnetwork_iam_member" "subnet_iam" {
 
 # firewall to allow cluster to cluster communication
 resource "google_compute_firewall" "cluster_to_cluster_firewall" {
-  for_each = var.cluster_firewall_rules
+  for_each = var.cluster_to_cluster_firewall_rules
   name     = each.value.name
   network  = google_compute_network.shared_vpc_network.id
   project  = var.project_id

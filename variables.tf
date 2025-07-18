@@ -179,7 +179,7 @@ variable "timeouts" {
   default = {}
 }
 
-variable "cluster_firewall_rules" {
+variable "cluster_to_cluster_firewall_rules" {
   description = "Map of firewall rules for cluster-to-cluster communication"
   type = map(object({
     name          = string
