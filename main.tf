@@ -103,6 +103,6 @@ resource "google_compute_firewall" "cluster_to_cluster_firewall" {
 
 resource "google_dns_managed_zone" "private_zone" {
   name     = "${var.name}-internal-dns-zone"
-  dns_name = var.dns_name
+  dns_name = var.internal_dns_name
   project  = var.project_id
 }
