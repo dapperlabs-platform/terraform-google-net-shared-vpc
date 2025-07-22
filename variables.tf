@@ -39,7 +39,7 @@ variable "subnets" {
 }
 
 variable "project_service_accounts" {
-  description = "Map of project_id to list of service accounts that will get IAM permissions on subnets"
+  description = "Map of subnet_key to list of service accounts that will get IAM permissions on that subnet"
   type        = map(list(string))
   default     = {}
 }
@@ -177,4 +177,23 @@ variable "timeouts" {
     delete = optional(string, "10m")
   })
   default = {}
+}
+
+variable "cluster_to_cluster_firewall_rules" {
+  description = "Map of firewall rules for cluster-to-cluster communication"
+  type = map(object({
+    name          = string
+    source_ranges = list(string)
+    target_ranges = optional(list(string), [])
+    allow = list(object({
+      protocol = string
+      ports    = optional(list(string), [])
+    }))
+  }))
+  default = {}
+}
+
+variable "internal_dns_name" {
+  description = "DNS name for the private managed zone"
+  type        = string
 }
