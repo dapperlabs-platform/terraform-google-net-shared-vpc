@@ -192,3 +192,8 @@ variable "cluster_to_cluster_firewall_rules" {
   }))
   default = {}
 }
+
+variable "dns_name" {
+  description = "DNS name for the private managed zone"
+  type        = string
+}

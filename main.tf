@@ -99,34 +99,10 @@ resource "google_compute_firewall" "cluster_to_cluster_firewall" {
   }
 }
 
+# Cloud DNS
 
-# Routers (one per region)
-#resource "google_compute_router" "nat" {
-#  for_each = toset([for item in local.all_subnets : item.subnet.region])
-#
-#  name    = "shared-vpc-router-${each.value}"
-#  region  = each.value
-#  network = google_compute_network.shared_vpc_network.id
-#  project = var.project_id
-#
-#  bgp {
-#    asn = 64514
-#  }
-#}
-#
-## Cloud NAT
-#resource "google_compute_router_nat" "nat" {
-#  for_each = google_compute_router.nat
-#
-#  name                               = "shared-vpc-nat-${each.value.region}"
-#  router                             = each.value.name
-#  region                             = each.value.region
-#  project                            = var.project_id
-#  nat_ip_allocate_option             = "AUTO_ONLY"
-#  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
-#
-#  log_config {
-#    enable = true
-#    filter = "ERRORS_ONLY"
-#  }
-#}
+resource "google_dns_managed_zone" "private_zone" {
+  name     = "${var.name}-internal-dns-zone"
+  dns_name = var.dns_name
+  project  = var.project_id
+}
