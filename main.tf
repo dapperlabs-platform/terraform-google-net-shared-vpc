@@ -105,4 +105,9 @@ resource "google_dns_managed_zone" "private_zone" {
   dns_name   = var.internal_dns_name
   project    = var.project_id
   visibility = "private"
+  private_visibility_config {
+    networks {
+      network_url = google_compute_network.shared_vpc_network.id
+    }
+  }
 }
