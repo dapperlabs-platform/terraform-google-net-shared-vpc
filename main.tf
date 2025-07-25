@@ -24,12 +24,12 @@ locals {
     ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
   ])
 
-  # Extract GKE service accounts for host project IAM
+  # Extract GKE service accounts for host project IAM - only from projects with active subnets
   gke_service_accounts = flatten([
-    for project_id, service_accounts in var.project_service_accounts : [
-      for sa in service_accounts : sa
-      if strcontains(sa, "@container-engine-robot.iam.gserviceaccount.com")
-    ]
+    for subnet_key, subnet in var.subnets : [
+      for service_account in try(var.project_service_accounts[subnet.project_id], []) : service_account
+      if strcontains(service_account, "@container-engine-robot.iam.gserviceaccount.com")
+    ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
   ])
 }
 
