@@ -89,6 +89,14 @@ resource "google_compute_subnetwork_iam_member" "subnet_iam" {
   member     = each.value.service_account
 }
 
+# GKE Service Account IAM Permissions for Shared VPC
+resource "google_project_iam_member" "gke_host_service_agent" {
+  for_each = toset(local.gke_service_accounts)
+  project  = var.project_id
+  role     = "roles/container.hostServiceAgentUser"
+  member   = each.value
+}
+
 # firewall to allow cluster to cluster communication
 resource "google_compute_firewall" "cluster_to_cluster_firewall" {
   for_each = var.cluster_to_cluster_firewall_rules
@@ -118,12 +126,4 @@ resource "google_dns_managed_zone" "private_zone" {
       network_url = google_compute_network.shared_vpc_network.id
     }
   }
-}
-
-# GKE Service Account IAM Permissions for Shared VPC
-resource "google_project_iam_member" "gke_host_service_agent" {
-  for_each = toset(local.gke_service_accounts)
-  project  = var.project_id
-  role     = "roles/container.hostServiceAgentUser"
-  member   = each.value
 }
