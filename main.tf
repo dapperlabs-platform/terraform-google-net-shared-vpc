@@ -23,6 +23,14 @@ locals {
       }
     ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
   ])
+
+  # Extract GKE service accounts for host project IAM
+  gke_service_accounts = flatten([
+    for project_id, service_accounts in var.project_service_accounts : [
+      for sa in service_accounts : sa
+      if strcontains(sa, "@container-engine-robot.iam.gserviceaccount.com")
+    ]
+  ])
 }
 
 # Shared VPC Network
@@ -110,4 +118,12 @@ resource "google_dns_managed_zone" "private_zone" {
       network_url = google_compute_network.shared_vpc_network.id
     }
   }
+}
+
+# GKE Service Account IAM Permissions for Shared VPC
+resource "google_project_iam_member" "gke_host_service_agent" {
+  for_each = toset(local.gke_service_accounts)
+  project  = var.project_id
+  role     = "roles/container.hostServiceAgentUser"
+  member   = each.value
 }
