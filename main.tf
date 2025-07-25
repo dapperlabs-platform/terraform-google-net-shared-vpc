@@ -23,6 +23,14 @@ locals {
       }
     ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
   ])
+
+  # Extract GKE service accounts for host project IAM - only from projects with active subnets
+  gke_service_accounts = flatten([
+    for subnet_key, subnet in var.subnets : [
+      for service_account in try(var.project_service_accounts[subnet.project_id], []) : service_account
+      if strcontains(service_account, "@container-engine-robot.iam.gserviceaccount.com")
+    ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
+  ])
 }
 
 # Shared VPC Network
@@ -79,6 +87,14 @@ resource "google_compute_subnetwork_iam_member" "subnet_iam" {
   subnetwork = each.value.subnet_name
   role       = "roles/compute.networkUser"
   member     = each.value.service_account
+}
+
+# GKE Service Account IAM Permissions for Shared VPC
+resource "google_project_iam_member" "gke_host_service_agent" {
+  for_each = toset(local.gke_service_accounts)
+  project  = var.project_id
+  role     = "roles/container.hostServiceAgentUser"
+  member   = each.value
 }
 
 # firewall to allow cluster to cluster communication

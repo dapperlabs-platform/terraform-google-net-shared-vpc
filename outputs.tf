@@ -142,5 +142,13 @@ output "network_summary" {
     #router_count      = length(google_compute_router.nat)
     #nat_count         = length(google_compute_router_nat.nat)
     iam_binding_count = length(google_compute_subnetwork_iam_member.subnet_iam)
+    gke_iam_count     = length(google_project_iam_member.gke_host_service_agent)
   }
 }
+
+output "gke_service_accounts" {
+  description = "GKE service accounts that received container.hostServiceAgentUser permissions"
+  value       = local.gke_service_accounts
+}
+
+
