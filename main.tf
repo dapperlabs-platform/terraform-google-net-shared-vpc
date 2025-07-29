@@ -87,6 +87,11 @@ resource "google_compute_subnetwork_iam_member" "subnet_iam" {
   subnetwork = each.value.subnet_name
   role       = "roles/compute.networkUser"
   member     = each.value.service_account
+
+  # Ensure subnets are created before setting IAM permissions
+  depends_on = [
+    google_compute_subnetwork.network-with-private-secondary-ip-ranges
+  ]
 }
 
 # GKE Service Account IAM Permissions for Shared VPC
