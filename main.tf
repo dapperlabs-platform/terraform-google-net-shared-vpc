@@ -142,7 +142,7 @@ resource "google_compute_global_address" "gke_master_range" {
     if item.subnet.master_ip_cidr_range != null && item.subnet.master_ip_cidr_range != ""
   }
 
-  name          = "gke-master-peering-${each.value.subnet_key}"
+  name          = "gke-mp-${each.value.project_id}-${each.value.subnet.region}"
   project       = var.project_id
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
