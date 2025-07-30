@@ -59,10 +59,11 @@ resource "google_compute_subnetwork" "network-with-private-secondary-ip-ranges" 
     item.key => item
   }
 
-  name          = each.value.subnet.name
-  ip_cidr_range = each.value.subnet.node_ip_cidr_range
-  region        = each.value.subnet.region
-  network       = google_compute_network.shared_vpc_network.id
+  name                     = each.value.subnet.name
+  ip_cidr_range            = each.value.subnet.node_ip_cidr_range
+  region                   = each.value.subnet.region
+  network                  = google_compute_network.shared_vpc_network.id
+  private_ip_google_access = true
 
   secondary_ip_range {
     range_name    = "pods"
