@@ -34,7 +34,7 @@ variable "subnets" {
     node_ip_cidr_range      = string
     pod_ip_cidr_range       = string
     service_ip_cidr_range   = string
-    proxy_only_subnet_range = string
+    proxy_only_subnet_range = optional(string, "")
   }))
   default = {}
 }
