@@ -140,9 +140,9 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
     for item in local.all_subnets :
     item.key => item
   }
-  name                     = "${each.value.subnet.name}-proxy-only"
-  ip_cidr_range            = each.value.subnet.proxy_only_subnet_range
-  region                   = each.value.subnet.region
-  network                  = google_compute_network.shared_vpc_network.id
-  private_ip_google_access = true
+  name          = "${each.value.subnet.name}-proxy-only"
+  ip_cidr_range = each.value.subnet.proxy_only_subnet_range
+  region        = each.value.subnet.region
+  network       = google_compute_network.shared_vpc_network.id
+  purpose       = "GLOBAL_MANAGED_PROXY"
 }
