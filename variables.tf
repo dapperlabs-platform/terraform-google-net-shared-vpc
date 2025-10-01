@@ -27,13 +27,14 @@ variable "project_id" {
 variable "subnets" {
   description = "Map of subnet configurations. Only subnets with project_id assigned will be created."
   type = map(object({
-    project_id            = string
-    name                  = string
-    region                = string
-    master_ip_cidr_range  = string
-    node_ip_cidr_range    = string
-    pod_ip_cidr_range     = string
-    service_ip_cidr_range = string
+    project_id              = string
+    name                    = string
+    region                  = string
+    master_ip_cidr_range    = string
+    node_ip_cidr_range      = string
+    pod_ip_cidr_range       = string
+    service_ip_cidr_range   = string
+    proxy_only_subnet_range = string
   }))
   default = {}
 }
