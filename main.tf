@@ -134,32 +134,15 @@ resource "google_dns_managed_zone" "private_zone" {
   }
 }
 
-## GKE Master Peering Range - per subnet with master_ip_cidr_range
-#resource "google_compute_global_address" "gke_master_range" {
-#  for_each = {
-#    for item in local.all_subnets :
-#    item.key => item
-#    if item.subnet.master_ip_cidr_range != null && item.subnet.master_ip_cidr_range != ""
-#  }
-#
-#  name          = "gke-mp-${each.value.project_id}-${each.value.subnet.region}"
-#  project       = var.project_id
-#  purpose       = "VPC_PEERING"
-#  address_type  = "INTERNAL"
-#  address       = split("/", each.value.subnet.master_ip_cidr_range)[0]
-#  prefix_length = tonumber(split("/", each.value.subnet.master_ip_cidr_range)[1])
-#  network       = google_compute_network.shared_vpc_network.id
-#}
-#
-## GKE Master Service Networking Connection - per subnet with master_ip_cidr_range
-#resource "google_service_networking_connection" "gke_master_peering" {
-#  for_each = {
-#    for item in local.all_subnets :
-#    item.key => item
-#    if item.subnet.master_ip_cidr_range != null && item.subnet.master_ip_cidr_range != ""
-#  }
-#
-#  network                 = google_compute_network.shared_vpc_network.id
-#  service                 = "servicenetworking.googleapis.com"
-#  reserved_peering_ranges = [google_compute_global_address.gke_master_range[each.key].name]
-#}
+# proxy-only subnet
+resource "google_compute_subnetwork" "proxy_only_subnet" {
+  for_each = {
+    for item in local.all_subnets :
+    item.key => item
+  }
+  name                     = "${each.value.subnet.name}-proxy-only"
+  ip_cidr_range            = each.value.subnet.proxy_only_subnet_range
+  region                   = each.value.subnet.region
+  network                  = google_compute_network.shared_vpc_network.id
+  private_ip_google_access = true
+}
