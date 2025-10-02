@@ -1,35 +1,35 @@
 locals {
-  # Filter subnets that have a project_id assigned and flatten them
-  all_subnets = flatten([
-    for subnet_key, subnet in var.subnets : [
-      {
-        subnet_key = subnet_key
-        project_id = subnet.project_id
-        subnet     = subnet
-        key        = "${subnet.project_id}/${subnet_key}"
-      }
-    ] if subnet.project_id != ""
-  ])
+  # Filter subnets that have a project_id assigned and create a map
+  all_subnets = {
+    for subnet_key, subnet in var.subnets :
+    "${subnet.project_id}/${subnet_key}" => {
+      subnet_key = subnet_key
+      project_id = subnet.project_id
+      subnet     = subnet
+      key        = "${subnet.project_id}/${subnet_key}"
+    }
+    if subnet.project_id != ""
+  }
 
   # Flatten IAM members for subnets with project_ids
   subnet_iam_members = flatten([
-    for subnet_key, subnet in var.subnets : [
-      for service_account in try(var.project_service_accounts[subnet.project_id], []) : {
-        subnet_key      = subnet_key
-        project_id      = subnet.project_id
-        subnet_name     = subnet.name
-        region          = subnet.region
+    for key, item in local.all_subnets : [
+      for service_account in try(var.project_service_accounts[item.project_id], []) : {
+        subnet_key      = item.subnet_key
+        project_id      = item.project_id
+        subnet_name     = item.subnet.name
+        region          = item.subnet.region
         service_account = service_account
       }
-    ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
+    ] if item.subnet.name != "" && item.subnet.region != ""
   ])
 
   # Extract GKE service accounts for host project IAM - only from projects with active subnets
   gke_service_accounts = flatten([
-    for subnet_key, subnet in var.subnets : [
-      for service_account in try(var.project_service_accounts[subnet.project_id], []) : service_account
+    for key, item in local.all_subnets : [
+      for service_account in try(var.project_service_accounts[item.project_id], []) : service_account
       if strcontains(service_account, "@container-engine-robot.iam.gserviceaccount.com")
-    ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
+    ] if item.subnet.name != "" && item.subnet.region != ""
   ])
 }
 
@@ -47,17 +47,14 @@ resource "google_compute_shared_vpc_host_project" "host" {
 
 # Service Projects - attach service projects to the host project
 resource "google_compute_shared_vpc_service_project" "service_project" {
-  for_each        = toset([for item in local.all_subnets : item.project_id])
+  for_each        = toset([for key, item in local.all_subnets : item.project_id])
   host_project    = google_compute_shared_vpc_host_project.host.project
   service_project = each.value
 }
 
 # Subnets
 resource "google_compute_subnetwork" "network-with-private-secondary-ip-ranges" {
-  for_each = {
-    for item in local.all_subnets :
-    item.key => item
-  }
+  for_each = local.all_subnets
 
   name                     = each.value.subnet.name
   ip_cidr_range            = each.value.subnet.node_ip_cidr_range
@@ -137,8 +134,8 @@ resource "google_dns_managed_zone" "private_zone" {
 # proxy-only subnet
 resource "google_compute_subnetwork" "proxy_only_subnet" {
   for_each = {
-    for item in local.all_subnets :
-    "${item.key}-${item.subnet.name}" => item
+    for key, item in local.all_subnets :
+    "${key}-${item.subnet.name}" => item
     if item.subnet.proxy_only_subnet_range != ""
   }
   name          = "${each.value.subnet.name}-proxy-only"
