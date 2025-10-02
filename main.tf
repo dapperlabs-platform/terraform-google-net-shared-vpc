@@ -146,4 +146,5 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
   region        = each.value.subnet.region
   network       = google_compute_network.shared_vpc_network.id
   purpose       = "GLOBAL_MANAGED_PROXY"
+  role          = "ACTIVE"
 }
