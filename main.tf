@@ -23,6 +23,14 @@ locals {
       }
     ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
   ])
+
+  # Extract GKE service accounts for host project IAM - only from projects with active subnets
+  gke_service_accounts = flatten([
+    for subnet_key, subnet in var.subnets : [
+      for service_account in try(var.project_service_accounts[subnet.project_id], []) : service_account
+      if strcontains(service_account, "@container-engine-robot.iam.gserviceaccount.com")
+    ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
+  ])
 }
 
 # Shared VPC Network
@@ -51,10 +59,11 @@ resource "google_compute_subnetwork" "network-with-private-secondary-ip-ranges" 
     item.key => item
   }
 
-  name          = each.value.subnet.name
-  ip_cidr_range = each.value.subnet.node_ip_cidr_range
-  region        = each.value.subnet.region
-  network       = google_compute_network.shared_vpc_network.id
+  name                     = each.value.subnet.name
+  ip_cidr_range            = each.value.subnet.node_ip_cidr_range
+  region                   = each.value.subnet.region
+  network                  = google_compute_network.shared_vpc_network.id
+  private_ip_google_access = true
 
   secondary_ip_range {
     range_name    = "pods"
@@ -79,6 +88,19 @@ resource "google_compute_subnetwork_iam_member" "subnet_iam" {
   subnetwork = each.value.subnet_name
   role       = "roles/compute.networkUser"
   member     = each.value.service_account
+
+  # Ensure subnets are created before setting IAM permissions
+  depends_on = [
+    google_compute_subnetwork.network-with-private-secondary-ip-ranges
+  ]
+}
+
+# GKE Service Account IAM Permissions for Shared VPC
+resource "google_project_iam_member" "gke_host_service_agent" {
+  for_each = toset(local.gke_service_accounts)
+  project  = var.project_id
+  role     = "roles/container.hostServiceAgentUser"
+  member   = each.value
 }
 
 # firewall to allow cluster to cluster communication
@@ -111,3 +133,20 @@ resource "google_dns_managed_zone" "private_zone" {
     }
   }
 }
+
+## proxy-only subnet
+#resource "google_compute_subnetwork" "proxy_only_subnet" {
+#  for_each = {
+#    for item in local.all_subnets :
+#    item.key => item
+#    if item.subnet.proxy_only_subnet_range != "" && item.subnet.proxy_only_subnet_range != null
+#  }
+#  name          = "${each.value.subnet.name}-proxy-only"
+#  ip_cidr_range = each.value.subnet.proxy_only_subnet_range
+#  region        = each.value.subnet.region
+#  network       = google_compute_network.shared_vpc_network.id
+#  purpose       = "GLOBAL_MANAGED_PROXY"
+#  role          = "ACTIVE"
+#}
+#
+#

@@ -142,5 +142,33 @@ output "network_summary" {
     #router_count      = length(google_compute_router.nat)
     #nat_count         = length(google_compute_router_nat.nat)
     iam_binding_count = length(google_compute_subnetwork_iam_member.subnet_iam)
+    gke_iam_count     = length(google_project_iam_member.gke_host_service_agent)
   }
 }
+
+output "gke_service_accounts" {
+  description = "GKE service accounts that received container.hostServiceAgentUser permissions"
+  value       = local.gke_service_accounts
+}
+
+#output "gke_master_range_ids" {
+#  description = "Map of GKE master peering range global address IDs by subnet key"
+#  value       = { for k, v in google_compute_global_address.gke_master_range : k => v.id }
+#}
+#
+#output "gke_master_range_names" {
+#  description = "Map of GKE master peering range global address names by subnet key"
+#  value       = { for k, v in google_compute_global_address.gke_master_range : k => v.name }
+#}
+#
+#output "gke_master_range_addresses" {
+#  description = "Map of allocated IP addresses for GKE master peering ranges by subnet key"
+#  value       = { for k, v in google_compute_global_address.gke_master_range : k => v.address }
+#}
+#
+#output "gke_master_peering_connections" {
+#  description = "Map of service networking connections for GKE master peering by subnet key"
+#  value       = { for k, v in google_service_networking_connection.gke_master_peering : k => v.peering }
+#}
+
+
