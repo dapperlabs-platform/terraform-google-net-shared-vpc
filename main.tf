@@ -145,3 +145,4 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
   purpose       = "GLOBAL_MANAGED_PROXY"
   role          = "ACTIVE"
 }
+
