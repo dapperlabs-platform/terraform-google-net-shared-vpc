@@ -139,7 +139,7 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
   for_each = {
     for item in local.all_subnets :
     item.key => item
-    if item.subnet.proxy_only_subnet_range != "" && item.subnet.proxy_only_subnet_range != null
+    if item.subnet.proxy_only_subnet_range != ""
   }
   name          = "${each.value.subnet.name}-proxy-only"
   ip_cidr_range = each.value.subnet.proxy_only_subnet_range
