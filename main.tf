@@ -134,18 +134,19 @@ resource "google_dns_managed_zone" "private_zone" {
   }
 }
 
-# proxy-only subnet
-resource "google_compute_subnetwork" "proxy_only_subnet" {
-  for_each = {
-    for item in local.all_subnets :
-    item.key => item
-    if item.subnet.proxy_only_subnet_range != "" && item.subnet.proxy_only_subnet_range != null
-  }
-  name          = "${each.value.subnet.name}-proxy-only"
-  ip_cidr_range = each.value.subnet.proxy_only_subnet_range
-  region        = each.value.subnet.region
-  network       = google_compute_network.shared_vpc_network.id
-  purpose       = "GLOBAL_MANAGED_PROXY"
-  role          = "ACTIVE"
-}
-
+## proxy-only subnet
+#resource "google_compute_subnetwork" "proxy_only_subnet" {
+#  for_each = {
+#    for item in local.all_subnets :
+#    item.key => item
+#    if item.subnet.proxy_only_subnet_range != "" && item.subnet.proxy_only_subnet_range != null
+#  }
+#  name          = "${each.value.subnet.name}-proxy-only"
+#  ip_cidr_range = each.value.subnet.proxy_only_subnet_range
+#  region        = each.value.subnet.region
+#  network       = google_compute_network.shared_vpc_network.id
+#  purpose       = "GLOBAL_MANAGED_PROXY"
+#  role          = "ACTIVE"
+#}
+#
+#
