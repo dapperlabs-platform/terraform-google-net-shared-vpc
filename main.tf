@@ -138,7 +138,7 @@ resource "google_dns_managed_zone" "private_zone" {
 resource "google_compute_subnetwork" "proxy_only_subnet" {
   for_each = {
     for item in local.all_subnets :
-    item.key => item
+    "${item.key}-${item.subnet.name}" => item
     if item.subnet.proxy_only_subnet_range != ""
   }
   name          = "${each.value.subnet.name}-proxy-only"
