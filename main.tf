@@ -134,6 +134,23 @@ resource "google_dns_managed_zone" "private_zone" {
   }
 }
 
+# Reserve an internal range for Google-managed services (PSA)
+resource "google_compute_global_address" "psa_range" {
+  name          = "google-managed-services-range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  address       = split("/", var.psa_range)[0] # Extract IP address from CIDR
+  prefix_length = split("/", var.psa_range)[1] # Extract prefix length from CIDR
+  network       = google_compute_network.shared_vpc_network.id
+}
+
+# Create PSA connection to Service Networking
+resource "google_service_networking_connection" "psa_connection" {
+  network                 = google_compute_network.shared_vpc_network.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.psa_range.name]
+}
+
 ## proxy-only subnet
 #resource "google_compute_subnetwork" "proxy_only_subnet" {
 #  for_each = {
