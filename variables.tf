@@ -197,3 +197,8 @@ variable "internal_dns_name" {
   description = "DNS name for the private managed zone"
   type        = string
 }
+
+variable "psa_range" {
+  description = "Internal range for Google-managed services (PSA)"
+  type        = string
+}
