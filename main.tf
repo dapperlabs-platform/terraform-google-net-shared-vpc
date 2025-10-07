@@ -139,8 +139,8 @@ resource "google_compute_global_address" "psa_range" {
   name          = "google-managed-services-range"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
-  address       = "var.psa_range"
-  prefix_length = split("/", var.psa_range)[1]
+  address       = split("/", var.psa_range)[0] # Extract IP address from CIDR
+  prefix_length = split("/", var.psa_range)[1] # Extract prefix length from CIDR
   network       = google_compute_network.shared_vpc_network.id
 }
 
