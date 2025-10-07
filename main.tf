@@ -167,6 +167,7 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
   }
 
   name          = "${each.value.region_key}-proxy-only"
+  description   = "Used for internal load balancers"
   ip_cidr_range = each.value.region_config.proxy_only_subnet
   region        = each.value.region_key
   network       = google_compute_network.shared_vpc_network.id
