@@ -202,3 +202,12 @@ variable "psa_range" {
   description = "Internal range for Google-managed services (PSA)"
   type        = string
 }
+
+variable "regions" {
+  description = "Map of regions with NAT and proxy-only subnet configurations"
+  type = map(object({
+    nat_ip_count      = optional(number, 0)
+    proxy_only_subnet = optional(string, "")
+  }))
+  default = {}
+}
