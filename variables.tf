@@ -204,9 +204,8 @@ variable "psa_range" {
 }
 
 variable "regions" {
-  description = "Map of regions with NAT and proxy-only subnet configurations"
+  description = "Map of regions with proxy-only subnet configurations"
   type = map(object({
-    nat_ip_count      = optional(number, 0)
     proxy_only_subnet = optional(string, "")
   }))
   default = {}
