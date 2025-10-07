@@ -37,7 +37,6 @@ locals {
     for region_key, region_config in var.regions : {
       region_key    = region_key
       region_config = region_config
-      key           = region_key
     } if region_config.proxy_only_subnet != "" && region_config.proxy_only_subnet != null
   ]
 }
@@ -164,7 +163,7 @@ resource "google_service_networking_connection" "psa_connection" {
 resource "google_compute_subnetwork" "proxy_only_subnet" {
   for_each = {
     for item in local.proxy_only_subnets :
-    item.key => item
+    item.region_key => item
   }
 
   name          = "${each.value.region_key}-proxy-only"
