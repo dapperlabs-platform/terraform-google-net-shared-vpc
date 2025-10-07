@@ -167,7 +167,7 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
     item.key => item
   }
 
-  name          = "${var.name}-proxy-only-${each.value.region_key}"
+  name          = "${each.value.region_key}-proxy-only"
   ip_cidr_range = each.value.region_config.proxy_only_subnet
   region        = each.value.region_key
   network       = google_compute_network.shared_vpc_network.id
