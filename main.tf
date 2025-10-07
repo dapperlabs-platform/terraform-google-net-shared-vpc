@@ -31,6 +31,14 @@ locals {
       if strcontains(service_account, "@container-engine-robot.iam.gserviceaccount.com")
     ] if subnet.project_id != "" && subnet.name != "" && subnet.region != ""
   ])
+
+  # Create proxy-only subnet configurations from regions
+  proxy_only_subnets = [
+    for region_key, region_config in var.regions : {
+      region_key    = region_key
+      region_config = region_config
+    } if region_config.proxy_only_subnet != "" && region_config.proxy_only_subnet != null
+  ]
 }
 
 # Shared VPC Network
@@ -151,19 +159,18 @@ resource "google_service_networking_connection" "psa_connection" {
   reserved_peering_ranges = [google_compute_global_address.psa_range.name]
 }
 
-## proxy-only subnet
-#resource "google_compute_subnetwork" "proxy_only_subnet" {
-#  for_each = {
-#    for item in local.all_subnets :
-#    item.key => item
-#    if item.subnet.proxy_only_subnet_range != "" && item.subnet.proxy_only_subnet_range != null
-#  }
-#  name          = "${each.value.subnet.name}-proxy-only"
-#  ip_cidr_range = each.value.subnet.proxy_only_subnet_range
-#  region        = each.value.subnet.region
-#  network       = google_compute_network.shared_vpc_network.id
-#  purpose       = "GLOBAL_MANAGED_PROXY"
-#  role          = "ACTIVE"
-#}
-#
-#
+# Proxy-only subnet for cross-region managed proxy
+resource "google_compute_subnetwork" "proxy_only_subnet" {
+  for_each = {
+    for item in local.proxy_only_subnets :
+    item.region_key => item
+  }
+
+  name          = "${each.value.region_key}-proxy-only"
+  description   = "Used for internal load balancers"
+  ip_cidr_range = each.value.region_config.proxy_only_subnet
+  region        = each.value.region_key
+  network       = google_compute_network.shared_vpc_network.id
+  purpose       = "GLOBAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+}
