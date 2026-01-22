@@ -174,3 +174,112 @@ resource "google_compute_subnetwork" "proxy_only_subnet" {
   purpose       = "GLOBAL_MANAGED_PROXY"
   role          = "ACTIVE"
 }
+
+# ============================================================================
+# Observability Infrastructure (Thanos/Loki/Tempo)
+# Automatically creates static IPs, DNS, and firewall rules for product subnets
+# ============================================================================
+
+locals {
+  # Automatically derive monitoring cluster pod CIDR from monitoring project's subnet
+  monitoring_pod_cidr = var.observability_config.enabled && var.observability_config.monitoring_project_id != "" ? (
+    try([
+      for subnet_key, subnet in var.subnets :
+      subnet.pod_ip_cidr_range
+      if subnet.project_id == var.observability_config.monitoring_project_id
+    ][0], "")
+  ) : ""
+
+  # Filter active product subnets (exclude monitoring project and empty project_ids)
+  observability_subnets = var.observability_config.enabled ? {
+    for subnet_key, subnet in var.subnets :
+    subnet_key => subnet
+    if subnet.project_id != "" && subnet.project_id != var.observability_config.monitoring_project_id
+  } : {}
+
+  # Extract product name from subnet name (e.g., "atlas-staging-us-west1" → "atlas")
+  # Assumes naming pattern: {product}-staging-{region}
+  observability_endpoints = var.observability_config.enabled ? flatten([
+    for subnet_key, subnet in local.observability_subnets : [
+      for service_key, service in var.observability_config.services : {
+        key         = "${subnet_key}-${service_key}"
+        subnet_key  = subnet_key
+        service_key = service_key
+        project_id  = subnet.project_id
+        subnet_name = subnet.name
+        region      = subnet.region
+        # Extract product: split by "-staging-", take first part
+        product = split("-staging-", subnet.name)[0]
+        # Calculate IP: take node subnet base + offset
+        ip_address = cidrhost(subnet.node_ip_cidr_range, service.ip_offset)
+        dns_name   = "${service.dns_prefix}.${subnet.region}.${split("-staging-", subnet.name)[0]}.${var.internal_dns_name}"
+        port       = service.port
+        enabled    = service.enabled
+        node_cidr  = subnet.node_ip_cidr_range
+      } if service.enabled
+    ]
+  ]) : []
+}
+
+# Static IPs for observability endpoints
+resource "google_compute_address" "observability_endpoint" {
+  for_each = var.observability_config.enabled ? {
+    for endpoint in local.observability_endpoints :
+    endpoint.key => endpoint
+  } : {}
+
+  project      = var.project_id
+  name         = "${each.value.service_key}-${each.value.region}-${each.value.product}"
+  region       = each.value.region
+  subnetwork   = google_compute_subnetwork.network-with-private-secondary-ip-ranges["${each.value.project_id}/${each.value.subnet_key}"].id
+  address_type = "INTERNAL"
+  address      = each.value.ip_address
+  purpose      = "GCE_ENDPOINT"
+
+  description = "Static IP for ${each.value.service_key} in ${each.value.product} ${each.value.region}"
+}
+
+# DNS records for observability endpoints
+resource "google_dns_record_set" "observability_endpoint" {
+  for_each = var.observability_config.enabled ? {
+    for endpoint in local.observability_endpoints :
+    endpoint.key => endpoint
+  } : {}
+
+  project      = var.project_id
+  managed_zone = google_dns_managed_zone.private_zone.name
+  name         = each.value.dns_name
+  type         = "A"
+  ttl          = 300
+
+  rrdatas = [google_compute_address.observability_endpoint[each.key].address]
+}
+
+# Firewall rules allowing monitoring cluster to access observability endpoints
+resource "google_compute_firewall" "observability_ingress" {
+  for_each = var.observability_config.enabled && local.monitoring_pod_cidr != "" ? {
+    for service_key, service in var.observability_config.services :
+    service_key => service
+    if service.enabled
+  } : {}
+
+  project     = var.project_id
+  name        = "allow-monitoring-to-${each.key}"
+  network     = google_compute_network.shared_vpc_network.id
+  description = "Allow monitoring cluster (${var.observability_config.monitoring_project_id}) to access ${each.key} endpoints across all products"
+
+  source_ranges = [local.monitoring_pod_cidr]
+
+  # Target all product node subnets (exclude SRE)
+  destination_ranges = [
+    for subnet_key, subnet in local.observability_subnets :
+    subnet.node_ip_cidr_range
+  ]
+
+  allow {
+    protocol = "tcp"
+    ports    = [tostring(each.value.port)]
+  }
+
+  priority = 1000
+}

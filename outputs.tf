@@ -141,9 +141,28 @@ output "network_summary" {
     subnet_count     = length(google_compute_subnetwork.network-with-private-secondary-ip-ranges)
     #router_count      = length(google_compute_router.nat)
     #nat_count         = length(google_compute_router_nat.nat)
-    iam_binding_count = length(google_compute_subnetwork_iam_member.subnet_iam)
-    gke_iam_count     = length(google_project_iam_member.gke_host_service_agent)
+    iam_binding_count            = length(google_compute_subnetwork_iam_member.subnet_iam)
+    gke_iam_count                = length(google_project_iam_member.gke_host_service_agent)
+    observability_endpoints_count = length(google_compute_address.observability_endpoint)
+    observability_dns_count      = length(google_dns_record_set.observability_endpoint)
+    observability_firewall_count = length(google_compute_firewall.observability_ingress)
   }
+}
+
+output "observability_endpoints" {
+  description = "Map of observability endpoint static IPs and DNS names"
+  value = var.observability_config.enabled ? {
+    for k, v in google_compute_address.observability_endpoint : k => {
+      ip_address = v.address
+      dns_name   = google_dns_record_set.observability_endpoint[k].name
+      region     = v.region
+    }
+  } : {}
+}
+
+output "observability_monitoring_pod_cidr" {
+  description = "Auto-derived pod CIDR of the monitoring cluster used in firewall rules"
+  value       = local.monitoring_pod_cidr
 }
 
 output "gke_service_accounts" {
