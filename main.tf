@@ -283,3 +283,37 @@ resource "google_compute_firewall" "observability_ingress" {
 
   priority = 1000
 }
+
+# Google Secret Manager secrets for LoadBalancer IPs
+# Stored in each product project with region-specific naming: {service_key}-lb-ip-{region}
+# Region-specific External Secrets reference the appropriate secret
+resource "google_secret_manager_secret" "observability_lb_ip" {
+  for_each = var.observability_config.enabled ? {
+    for endpoint in local.observability_endpoints :
+    endpoint.key => endpoint
+  } : {}
+
+  project   = each.value.project_id
+  secret_id = "${each.value.service_key}-lb-ip-${each.value.region}"
+
+  replication {
+    auto {}
+  }
+
+  labels = {
+    managed-by = "terraform"
+    product    = each.value.product
+    region     = each.value.region
+    service    = each.value.service_key
+  }
+}
+
+resource "google_secret_manager_secret_version" "observability_lb_ip" {
+  for_each = var.observability_config.enabled ? {
+    for endpoint in local.observability_endpoints :
+    endpoint.key => endpoint
+  } : {}
+
+  secret      = google_secret_manager_secret.observability_lb_ip[each.key].id
+  secret_data = google_compute_address.observability_endpoint[each.key].address
+}

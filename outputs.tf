@@ -165,6 +165,17 @@ output "observability_monitoring_pod_cidr" {
   value       = local.monitoring_pod_cidr
 }
 
+output "observability_secrets" {
+  description = "Map of GSM secrets containing LoadBalancer IPs for External Secrets Operator"
+  value = var.observability_config.enabled ? {
+    for k, v in google_secret_manager_secret.observability_lb_ip : k => {
+      secret_id  = v.secret_id
+      project_id = v.project
+      ip_address = google_secret_manager_secret_version.observability_lb_ip[k].secret_data
+    }
+  } : {}
+}
+
 output "gke_service_accounts" {
   description = "GKE service accounts that received container.hostServiceAgentUser permissions"
   value       = local.gke_service_accounts
