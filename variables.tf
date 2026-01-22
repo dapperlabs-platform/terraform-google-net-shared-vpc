@@ -210,3 +210,22 @@ variable "regions" {
   }))
   default = {}
 }
+
+variable "observability_config" {
+  description = "Configuration for centralized observability infrastructure (Thanos/Loki/Tempo). Automatically creates static IPs, DNS, and firewall rules for each product subnet. Pod CIDR is automatically derived from the monitoring project's subnet."
+  type = object({
+    enabled               = optional(bool, false)
+    monitoring_project_id = optional(string, "") # Project ID hosting monitoring cluster (e.g., "dl-sre-staging"). Pod CIDR will be auto-derived from this project's subnet.
+    services = optional(map(object({
+      enabled    = optional(bool, true)
+      port       = number                          # Port for firewall rule
+      dns_prefix = string                          # DNS prefix (e.g., "prometheus-thanos-sidecar")
+      ip_offset  = number                          # IP offset from subnet start (e.g., 202 for .202)
+    })), {})
+  })
+  default = {
+    enabled               = false
+    monitoring_project_id = ""
+    services              = {}
+  }
+}
