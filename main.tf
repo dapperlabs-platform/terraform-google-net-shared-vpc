@@ -228,15 +228,14 @@ resource "google_compute_address" "observability_endpoint" {
     endpoint.key => endpoint
   } : {}
 
-  project      = var.project_id
+  project      = each.value.project_id
   name         = "${each.value.service_key}-${each.value.region}-${each.value.product}"
   region       = each.value.region
   subnetwork   = google_compute_subnetwork.network-with-private-secondary-ip-ranges["${each.value.project_id}/${each.value.subnet_key}"].id
   address_type = "INTERNAL"
   address      = each.value.ip_address
   purpose      = "GCE_ENDPOINT"
-
-  description = "Static IP for ${each.value.service_key} in ${each.value.product} ${each.value.region}"
+  description  = "Static IP for ${each.value.service_key} in ${each.value.product} ${each.value.region}"
 }
 
 # DNS records for observability endpoints
