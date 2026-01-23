@@ -235,7 +235,6 @@ resource "google_compute_address" "observability_endpoint" {
   address_type = "INTERNAL"
   address      = each.value.ip_address
   purpose      = "GCE_ENDPOINT"
-  ip_version   = "IPV4"
   description  = "Static IP for ${each.value.service_key} in ${each.value.product} ${each.value.region}"
 }
 
