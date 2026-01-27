@@ -197,8 +197,6 @@ locals {
     if subnet.project_id != "" && subnet.project_id != var.observability_config.monitoring_project_id
   } : {}
 
-  # Extract product name from subnet name (e.g., "atlas-staging-us-west1" → "atlas")
-  # Assumes naming pattern: {product}-staging-{region}
   observability_endpoints = var.observability_config.enabled ? flatten([
     for subnet_key, subnet in local.observability_subnets : [
       for service_key, service in var.observability_config.services : {
@@ -208,11 +206,12 @@ locals {
         project_id  = subnet.project_id
         subnet_name = subnet.name
         region      = subnet.region
-        # Extract product: split by "-staging-", take first part
-        product = split("-staging-", subnet.name)[0]
+        # Extract product by removing region suffix (last segment after final hyphen)
+        product = join("-", slice(split("-", subnet.name), 0, length(split("-", subnet.name)) - 1))
         # Calculate IP: take node subnet base + offset
         ip_address = cidrhost(subnet.node_ip_cidr_range, service.ip_offset)
-        dns_name   = "${service.dns_prefix}.${subnet.region}.${split("-staging-", subnet.name)[0]}.${var.internal_dns_name}"
+        # DNS name uses product (with region suffix removed)
+        dns_name   = "${service.dns_prefix}.${subnet.region}.${join("-", slice(split("-", subnet.name), 0, length(split("-", subnet.name)) - 1))}.${var.internal_dns_name}"
         port       = service.port
         enabled    = service.enabled
         node_cidr  = subnet.node_ip_cidr_range
@@ -228,8 +227,15 @@ resource "google_compute_address" "observability_endpoint" {
     endpoint.key => endpoint
   } : {}
 
-  project      = each.value.project_id
-  name         = "${each.value.service_key}-${each.value.region}-${each.value.product}"
+  project = each.value.project_id
+  name = trimright(
+    substr(
+      "${each.value.service_key}-${each.value.region}-${each.value.product}",
+      0,
+      63
+    ),
+    "-" # Remove trailing hyphens to comply with GCP naming rules
+  )
   region       = each.value.region
   subnetwork   = google_compute_subnetwork.network-with-private-secondary-ip-ranges["${each.value.project_id}/${each.value.subnet_key}"].id
   address_type = "INTERNAL"
