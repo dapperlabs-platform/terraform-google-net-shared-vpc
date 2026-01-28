@@ -216,9 +216,6 @@ variable "observability_config" {
   type = object({
     enabled               = optional(bool, false)
     monitoring_project_id = optional(string, "") # Project ID hosting monitoring cluster (e.g., "dl-sre-staging"). Pod CIDR will be auto-derived from this project's subnet.
-    # Optional map to override endpoint names. Keys should match the endpoint key format: "{subnet_key}-{service_key}"
-    # Example: { "subnet-4-prometheus-thanos-sidecar" = "prom-thanos-ck-preview-w1" }
-    endpoint_name_overrides = optional(map(string), {})
     services = optional(map(object({
       enabled    = optional(bool, true)
       port       = number                          # Port for firewall rule
@@ -229,7 +226,6 @@ variable "observability_config" {
   default = {
     enabled                 = false
     monitoring_project_id   = ""
-    endpoint_name_overrides = {}
     services                = {}
   }
 }

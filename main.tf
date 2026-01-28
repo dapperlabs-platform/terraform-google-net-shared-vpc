@@ -230,7 +230,7 @@ resource "google_compute_address" "observability_endpoint" {
 
   project = each.value.project_id
   # Use override name if provided, otherwise use default format
-  name         = lookup(var.observability_config.endpoint_name_overrides, each.key, "${each.value.service_key}-${each.value.region}-${each.value.product}")
+  name         = "${each.value.service_key}-${each.value.product}"
   region       = each.value.region
   subnetwork   = google_compute_subnetwork.network-with-private-secondary-ip-ranges["${each.value.project_id}/${each.value.subnet_key}"].id
   address_type = "INTERNAL"
