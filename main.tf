@@ -208,11 +208,11 @@ locals {
         project_id  = subnet.project_id
         subnet_name = subnet.name
         region      = subnet.region
-        # Extract product: split by "-staging-", take first part
-        product = split("-staging-", subnet.name)[0]
+        # Extract product: match pattern {product}-{env}-{region} and take product
+        product = split("-", subnet.name)[0]
         # Calculate IP: take node subnet base + offset
         ip_address = cidrhost(subnet.node_ip_cidr_range, service.ip_offset)
-        dns_name   = "${service.dns_prefix}.${subnet.region}.${split("-staging-", subnet.name)[0]}.${var.internal_dns_name}"
+        dns_name   = "${service.dns_prefix}.${subnet.region}.${split("-", subnet.name)[0]}.${var.internal_dns_name}"
         port       = service.port
         enabled    = service.enabled
         node_cidr  = subnet.node_ip_cidr_range
@@ -230,7 +230,7 @@ resource "google_compute_address" "observability_endpoint" {
 
   project = each.value.project_id
   # Use override name if provided, otherwise use default format
-  name         = "${each.value.service_key}-${each.value.product}"
+  name         = "${each.value.service_key}-${each.value.region}-${each.value.product}"
   region       = each.value.region
   subnetwork   = google_compute_subnetwork.network-with-private-secondary-ip-ranges["${each.value.project_id}/${each.value.subnet_key}"].id
   address_type = "INTERNAL"
