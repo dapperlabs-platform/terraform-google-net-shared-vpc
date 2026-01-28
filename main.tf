@@ -198,7 +198,7 @@ locals {
   } : {}
 
   # Extract product name from subnet name (e.g., "atlas-staging-us-west1" → "atlas")
-  # Assumes naming pattern: {product}-{env}-{region} where env is staging, preview, or production
+  # Assumes naming pattern: {product}-staging-{region}
   observability_endpoints = var.observability_config.enabled ? flatten([
     for subnet_key, subnet in local.observability_subnets : [
       for service_key, service in var.observability_config.services : {
@@ -208,11 +208,11 @@ locals {
         project_id  = subnet.project_id
         subnet_name = subnet.name
         region      = subnet.region
-        # Extract product: match pattern {product}-{env}-{region} and take product
-        product = regex("^(.+)-(staging|preview|production)-", subnet.name)[0]
+        # Extract product: split by "-staging-", take first part
+        product = split("-", subnet.name)[0]
         # Calculate IP: take node subnet base + offset
         ip_address = cidrhost(subnet.node_ip_cidr_range, service.ip_offset)
-        dns_name   = "${service.dns_prefix}.${subnet.region}.${regex("^(.+)-(staging|preview|production)-", subnet.name)[0]}.${var.internal_dns_name}"
+        dns_name   = "${service.dns_prefix}.${subnet.region}.${split("-", subnet.name)[0]}.${var.internal_dns_name}"
         port       = service.port
         enabled    = service.enabled
         node_cidr  = subnet.node_ip_cidr_range
