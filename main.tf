@@ -232,7 +232,7 @@ locals {
       # Source: SRE monitoring pods + all product pods
       source_cidrs = distinct(concat(
         local.monitoring_pod_cidr != "" ? [local.monitoring_pod_cidr] : [],
-        [for subnet in var.subnets : subnet.pod_ip_cidr_range if subnet.project_id != "" && contains(lower(subnet.project_id), lower(product))]
+        [for subnet in var.subnets : subnet.pod_ip_cidr_range if subnet.project_id != "" && strcontains(lower(subnet.project_id), lower(product))]
       ))
 
       # Destination: All observability endpoint IPs for this product
