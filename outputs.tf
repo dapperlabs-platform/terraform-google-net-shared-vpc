@@ -145,7 +145,7 @@ output "network_summary" {
     gke_iam_count                = length(google_project_iam_member.gke_host_service_agent)
     observability_endpoints_count = length(google_compute_address.observability_endpoint)
     observability_dns_count      = length(google_dns_record_set.observability_endpoint)
-    observability_firewall_count = length(google_compute_firewall.observability_ingress)
+    observability_firewall_count = length(google_compute_firewall.product_observability)
   }
 }
 
