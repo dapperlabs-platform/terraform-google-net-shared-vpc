@@ -213,12 +213,45 @@ locals {
         # Calculate IP: take node subnet base + offset
         ip_address = cidrhost(subnet.node_ip_cidr_range, service.ip_offset)
         dns_name   = "${service.dns_prefix}.${subnet.region}.${regex("^(.+)-(staging|preview|production|beta)-", subnet.name)[0]}.${var.internal_dns_name}"
-        port       = service.port
+        ports      = service.ports
         enabled    = service.enabled
         node_cidr  = subnet.node_ip_cidr_range
       } if service.enabled
     ]
   ]) : []
+
+  # Auto-discover all products that have observability endpoints enabled
+  products_with_observability = var.observability_config.enabled ? distinct([
+    for endpoint in local.observability_endpoints :
+    endpoint.product
+  ]) : []
+
+  # Product observability firewall rules - allow both SRE monitoring and intra-product access to observability endpoints
+  product_observability_rules = {
+    for product in local.products_with_observability : product => {
+      # Source: SRE monitoring pods + all product pods
+      source_cidrs = distinct(concat(
+        local.monitoring_pod_cidr != "" ? [local.monitoring_pod_cidr] : [],
+        [for subnet in var.subnets : subnet.pod_ip_cidr_range if subnet.project_id != "" && strcontains(lower(subnet.project_id), lower(product))]
+      ))
+
+      # Destination: All observability endpoint IPs for this product
+      endpoint_ips = distinct([
+        for endpoint in local.observability_endpoints :
+        "${endpoint.ip_address}/32"
+        if lower(endpoint.product) == lower(product)
+      ])
+
+      # All unique ports used by observability endpoints (flatten since each endpoint has a list of ports)
+      ports = distinct(flatten([
+        for endpoint in local.observability_endpoints : [
+          for port in endpoint.ports :
+          tostring(port)
+        ]
+        if lower(endpoint.product) == lower(product)
+      ]))
+    }
+  }
 }
 
 # Static IPs for observability endpoints
@@ -255,30 +288,25 @@ resource "google_dns_record_set" "observability_endpoint" {
   rrdatas = [google_compute_address.observability_endpoint[each.key].address]
 }
 
-# Firewall rules allowing monitoring cluster to access observability endpoints
-resource "google_compute_firewall" "observability_ingress" {
-  for_each = var.observability_config.enabled && local.monitoring_pod_cidr != "" ? {
-    for service_key, service in var.observability_config.services :
-    service_key => service
-    if service.enabled
-  } : {}
+# Product observability firewall rules - allow both SRE monitoring and intra-product access
+resource "google_compute_firewall" "product_observability" {
+  for_each = {
+    for product, rule in local.product_observability_rules :
+    product => rule
+    if length(rule.source_cidrs) > 0 && length(rule.endpoint_ips) > 0
+  }
 
   project     = var.project_id
-  name        = "allow-monitoring-to-${each.key}"
+  name        = "allow-${each.key}-observability"
   network     = google_compute_network.shared_vpc_network.id
-  description = "Allow monitoring cluster (${var.observability_config.monitoring_project_id}) to access ${each.key} endpoints across all products"
+  description = "Allow SRE monitoring and ${each.key} pods to reach ${each.key} observability endpoints (tempo/loki/thanos)"
 
-  source_ranges = [local.monitoring_pod_cidr]
-
-  # Target all product node subnets (exclude SRE)
-  destination_ranges = [
-    for subnet_key, subnet in local.observability_subnets :
-    subnet.node_ip_cidr_range
-  ]
+  source_ranges      = each.value.source_cidrs
+  destination_ranges = each.value.endpoint_ips
 
   allow {
     protocol = "tcp"
-    ports    = [tostring(each.value.port)]
+    ports    = each.value.ports
   }
 
   priority = 1000
