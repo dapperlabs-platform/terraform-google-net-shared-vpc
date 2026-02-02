@@ -229,3 +229,9 @@ variable "observability_config" {
     services                = {}
   }
 }
+
+variable "intra_product_firewall_rules" {
+  description = "List of product names (e.g., ['atlas', 'nba']) for which to create intra-product firewall rules. Automatically allows all pods from matching subnets to communicate with all nodes in the same product."
+  type        = list(string)
+  default     = []
+}

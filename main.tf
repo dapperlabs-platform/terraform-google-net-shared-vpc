@@ -219,6 +219,14 @@ locals {
       } if service.enabled
     ]
   ]) : []
+
+  # Intra-product firewall rules - automatically group subnets by product
+  intra_product_groups = {
+    for product in var.intra_product_firewall_rules : product => {
+      pod_cidrs  = [for subnet in var.subnets : subnet.pod_ip_cidr_range if subnet.project_id != "" && contains(lower(subnet.project_id), lower(product))]
+      node_cidrs = [for subnet in var.subnets : subnet.node_ip_cidr_range if subnet.project_id != "" && contains(lower(subnet.project_id), lower(product))]
+    }
+  }
 }
 
 # Static IPs for observability endpoints
@@ -279,6 +287,36 @@ resource "google_compute_firewall" "observability_ingress" {
   allow {
     protocol = "tcp"
     ports    = [tostring(each.value.port)]
+  }
+
+  priority = 1000
+}
+
+# Intra-product firewall rules - allow all pods within a product to reach all nodes in that product
+resource "google_compute_firewall" "intra_product" {
+  for_each = {
+    for product in var.intra_product_firewall_rules : product => local.intra_product_groups[product]
+    if length(local.intra_product_groups[product].pod_cidrs) > 0 && length(local.intra_product_groups[product].node_cidrs) > 0
+  }
+
+  project     = var.project_id
+  name        = "allow-${each.key}-cluster-to-cluster"
+  network     = google_compute_network.shared_vpc_network.id
+  description = "Allow all ${each.key} pods to communicate with all ${each.key} nodes for cross-cluster communication"
+
+  source_ranges      = each.value.pod_cidrs
+  destination_ranges = each.value.node_cidrs
+
+  allow {
+    protocol = "tcp"
+  }
+
+  allow {
+    protocol = "udp"
+  }
+
+  allow {
+    protocol = "icmp"
   }
 
   priority = 1000
