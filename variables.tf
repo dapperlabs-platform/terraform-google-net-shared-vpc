@@ -218,7 +218,7 @@ variable "observability_config" {
     monitoring_project_id = optional(string, "") # Project ID hosting monitoring cluster (e.g., "dl-sre-staging"). Pod CIDR will be auto-derived from this project's subnet.
     services = optional(map(object({
       enabled    = optional(bool, true)
-      port       = number                          # Port for firewall rule
+      ports      = list(number)                    # All ports this service needs (e.g., [3200, 4317] for tempo)
       dns_prefix = string                          # DNS prefix (e.g., "prometheus-thanos-sidecar")
       ip_offset  = number                          # IP offset from subnet start (e.g., 202 for .202)
     })), {})
@@ -230,8 +230,3 @@ variable "observability_config" {
   }
 }
 
-variable "intra_product_firewall_rules" {
-  description = "List of product names (e.g., ['atlas', 'nba']) for which to create intra-product firewall rules. Automatically allows all pods from matching subnets to communicate with all nodes in the same product."
-  type        = list(string)
-  default     = []
-}
